@@ -248,10 +248,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="remember">Remember me</label>
                 </div>
                 
-                <button type="submit" class="btn">
-                    Sign In
-                </button>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        Sign In
+                    </button>
+                    <a href="index.php" class="btn btn-secondary">
+                        Go to Index
+                    </a>
+                </div>
             </form>
+            
+            <style>
+                .form-actions {
+                    display: flex;
+                    gap: 10px;
+                    margin-top: 20px;
+                }
+                .btn {
+                    flex: 1;
+                    padding: 10px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    text-align: center;
+                    text-decoration: none;
+                    font-size: 14px;
+                    transition: background-color 0.3s;
+                }
+                .btn-primary {
+                    background-color: #4a6baf;
+                    color: white;
+                }
+                .btn-primary:hover {
+                    background-color: #3a5a9f;
+                }
+                .btn-secondary {
+                    background-color: #6c757d;
+                    color: white;
+                }
+                .btn-secondary:hover {
+                    background-color: #5a6268;
+                }
+            </style>
             
             <div class="form-footer">
                 <p>Forgot your password? <a href="forgot-password.php">Reset it here</a></p>

@@ -166,6 +166,7 @@ if (basename($_SERVER['PHP_SELF']) === 'admin-login.php') {
                 </div>
                 
                 <button type="submit" class="btn">🔐 Login to Dashboard</button>
+                <a href="index.php" class="btn" style="background: #6c757d; margin-top: 10px; display: inline-block; text-decoration: none; text-align: center;">🏠 Go to Index</a>
             </form>
             
             <div class="footer">
