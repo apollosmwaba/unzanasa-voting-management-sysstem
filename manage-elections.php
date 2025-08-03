@@ -14,7 +14,7 @@ $elections = []; // Initialize as empty array by default
 // Handle form submission for adding/editing an election
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
-    $name = trim($_POST['name'] ?? '');
+    $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $startDate = $_POST['start_date'] ?? '';
     $endDate = $_POST['end_date'] ?? '';
@@ -24,8 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate input
     $errors = [];
     
-    if (empty($name)) {
-        $errors[] = 'Election name is required';
+    if (empty($title)) {
+        $errors[] = 'Election title is required';
     }
     
     if (empty($startDate)) {
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // If no validation errors, save the election
     if (empty($errors)) {
         $electionData = [
-            'name' => $name,
+            'title' => $title,
             'description' => $description,
             'start_date' => $startDate,
             'end_date' => $endDate,

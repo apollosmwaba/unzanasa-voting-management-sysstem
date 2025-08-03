@@ -10,27 +10,43 @@ if (basename($_SERVER['PHP_SELF']) === 'index.php') {
     
     $activeElections = $electionModel->getActiveElections();
     
-    // Handle vote submission
-    if ($_POST && isset($_POST['action']) && $_POST['action'] === 'vote') {
-        $computerNumber = Utils::sanitize($_POST['computer_number']);
-        $electionId = (int)$_POST['election_id'];
-        $candidateId = (int)$_POST['candidate_id'];
-        
-        if (empty($computerNumber) || !Utils::validateComputerNumber($computerNumber)) {
-            $error = 'Please enter a valid 10-digit computer number';
-        } else {
-            $success = $voteModel->castVote(
-                $electionId, 
-                $candidateId, 
-                $computerNumber, 
-                Utils::getClientIP(),
-                $_SERVER['HTTP_USER_AGENT'] ?? null
-            );
-            
-            if ($success) {
-                $successMessage = 'Your vote has been cast successfully! Thank you for participating.';
+    // Handle form submissions
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (isset($_POST['action']) && $_POST['action'] === 'verify_computer_number') {
+            // Verify computer number
+            $computerNumber = Utils::sanitize($_POST['computer_number']);
+            if (empty($computerNumber) || !Utils::validateComputerNumber($computerNumber)) {
+                $error = 'Please enter a valid 10-digit computer number';
             } else {
-                $error = 'Unable to cast vote. You may have already voted or the computer number is invalid.';
+                // Store computer number in session
+                $_SESSION['voter_computer_number'] = $computerNumber;
+                $showElections = true;
+            }
+        } 
+        elseif (isset($_POST['action']) && $_POST['action'] === 'vote') {
+            // Handle vote submission
+            $computerNumber = $_SESSION['voter_computer_number'] ?? '';
+            $electionId = (int)($_POST['election_id'] ?? 0);
+            $candidateId = (int)($_POST['candidate_id'] ?? 0);
+            
+            if (empty($computerNumber) || !Utils::validateComputerNumber($computerNumber)) {
+                $error = 'Invalid computer number. Please start over.';
+                unset($_SESSION['voter_computer_number']);
+            } else {
+                $success = $voteModel->castVote(
+                    $electionId, 
+                    $candidateId, 
+                    $computerNumber, 
+                    Utils::getClientIP(),
+                    $_SERVER['HTTP_USER_AGENT'] ?? null
+                );
+                
+                if ($success) {
+                    $successMessage = 'Your vote has been cast successfully! Thank you for participating.';
+                    unset($_SESSION['voter_computer_number']);
+                } else {
+                    $error = 'Unable to cast vote. You may have already voted for this election.';
+                }
             }
         }
     }
@@ -377,87 +393,97 @@ if (basename($_SERVER['PHP_SELF']) === 'index.php') {
                 </div>
             <?php endif; ?>
             
-            <!-- Voting Instructions -->
-            <div class="info-section">
-                <h3>📋 Voting Instructions</h3>
-                <ul class="voting-rules">
-                    <li>Enter your 10-digit computer number to vote</li>
-                    <li>You can only vote once per election position</li>
-                    <li>Select one candidate per position</li>
-                    <li>Your vote is secret and secure</li>
-                    <li>Make sure to vote before the election deadline</li>
-                </ul>
             </div>
-            
+            <div class="text-center mt-4">
+                <a href="index.php" class="btn btn-primary">Return to Voting</a>
+            </div>
+        <?php elseif (isset($error)): ?>
+            <div class="message error">
+                ❌ <?= htmlspecialchars($error) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!isset($_SESSION['voter_computer_number'])): ?>
+            <!-- Step 1: Computer Number Input -->
+            <div class="vote-section">
+                <h3>🔢 Enter Your Computer Number</h3>
+                <form method="POST">
+                    <input type="hidden" name="action" value="verify_computer_number">
+                    <div class="form-group">
+                        <input type="text" 
+                               id="computer_number" 
+                               name="computer_number" 
+                               class="form-control" 
+                               placeholder="Enter your 10-digit computer number" 
+                               required
+                               pattern="\d{10}"
+                               title="Please enter a 10-digit number"
+                               value="<?= isset($_POST['computer_number']) ? htmlspecialchars($_POST['computer_number']) : '' ?>">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Continue to Vote</button>
+                </form>
+            </div>
+        <?php else: ?>
+            <!-- Step 2: Show Elections and Candidates -->
+            <div class="voter-info">
+                <p>Computer Number: <strong><?= htmlspecialchars($_SESSION['voter_computer_number']) ?></strong>
+                <a href="index.php?reset=1" class="btn btn-sm btn-outline-secondary">Change</a></p>
+            </div>
+
             <?php if (empty($activeElections)): ?>
                 <div class="no-elections">
-                    <h2>🗳️ No Active Elections</h2>
-                    <p>There are currently no active elections. Please check back later.</p>
+                    <p>There are no active elections available for voting at the moment.</p>
                 </div>
             <?php else: ?>
-                <!-- Computer Number Input -->
-                <div class="vote-section">
-                    <h3>🔢 Enter Your Computer Number</h3>
-                    <form id="votingForm" method="POST">
-                        <input type="hidden" name="action" value="vote">
-                        <input type="hidden" name="election_id" id="selectedElectionId">
-                        <input type="hidden" name="candidate_id" id="selectedCandidateId">
+                <?php foreach ($activeElections as $election): 
+                    $candidates = $candidateModel->getCandidatesByElection($election['id']);
+                    if (empty($candidates)) continue;
+                ?>
+                    <div class="election-card">
+                        <h3><?= htmlspecialchars($election['title']) ?></h3>
+                        <p class="election-description"><?= htmlspecialchars($election['description']) ?></p>
+                        <p class="election-dates">
+                            🗓️ <?= date('F j, Y', strtotime($election['start_date'])) ?> to <?= date('F j, Y', strtotime($election['end_date'])) ?>
+                        </p>
                         
-                        <div class="form-group">
-                            <label for="computer_number">Computer Number (10 digits)</label>
-                            <input type="text" id="computer_number" name="computer_number" 
-                                   pattern="[0-9]{10}" maxlength="10" required
-                                   placeholder="Enter your 10-digit computer number">
-                        </div>
-                        
-                        <button type="submit" class="btn" id="voteBtn" disabled>
-                            🗳️ Cast Your Vote
-                        </button>
-                    </form>
-                </div>
-                
-                <!-- Elections -->
-                <div class="elections-grid">
-                    <?php foreach ($activeElections as $election): ?>
-                        <?php 
-                        $candidates = $candidateModel->getCandidatesByElection($election['id']);
-                        ?>
-                        <div class="election-card">
-                            <div class="election-title"><?= htmlspecialchars($election['title']) ?></div>
-                            <div class="election-position"><?= htmlspecialchars($election['position']) ?></div>
-                            <?php if ($election['description']): ?>
-                                <div class="election-description"><?= htmlspecialchars($election['description']) ?></div>
-                            <?php endif; ?>
+                        <form method="POST" class="candidates-list">
+                            <input type="hidden" name="action" value="vote">
+                            <input type="hidden" name="election_id" value="<?= $election['id'] ?>">
+                            <input type="hidden" name="computer_number" value="<?= htmlspecialchars($_SESSION['voter_computer_number']) ?>">
                             
-                            <div class="candidates-list">
-                                <h4>Candidates:</h4>
-                                <?php if (empty($candidates)): ?>
-                                    <p>No candidates registered yet.</p>
-                                <?php else: ?>
-                                    <?php foreach ($candidates as $candidate): ?>
-                                        <div class="candidate-item" onclick="selectCandidate(<?= $election['id'] ?>, <?= $candidate['id'] ?>, this)">
+                            <?php foreach ($candidates as $candidate): ?>
+                                <div class="candidate-option">
+                                    <input type="radio" 
+                                           id="candidate_<?= $candidate['id'] ?>" 
+                                           name="candidate_id" 
+                                           value="<?= $candidate['id'] ?>"
+                                           required>
+                                    <label for="candidate_<?= $candidate['id'] ?>">
+                                        <div class="candidate-card">
                                             <div class="candidate-photo">
-                                                <?php if ($candidate['photo'] && file_exists($candidate['photo'])): ?>
+                                                <?php if (!empty($candidate['photo'])): ?>
                                                     <img src="<?= htmlspecialchars($candidate['photo']) ?>" alt="<?= htmlspecialchars($candidate['name']) ?>">
                                                 <?php else: ?>
-                                                    👤
+                                                    <div class="no-photo">👤</div>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="candidate-info">
-                                                <div class="candidate-name"><?= htmlspecialchars($candidate['name']) ?></div>
-                                                <?php if ($candidate['bio']): ?>
-                                                    <div class="candidate-bio"><?= htmlspecialchars(substr($candidate['bio'], 0, 100)) ?>...</div>
-                                                <?php endif; ?>
+                                            <div class="candidate-details">
+                                                <h4><?= htmlspecialchars($candidate['name']) ?></h4>
+                                                <p class="candidate-bio"><?= nl2br(htmlspecialchars($candidate['bio'])) ?></p>
                                             </div>
                                         </div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                                    </label>
+                                </div>
+                            <?php endforeach; ?>
+                            
+                            <div class="text-center mt-4">
+                                <button type="submit" class="btn btn-primary">Submit Vote</button>
                             </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+                        </form>
+                    </div>
+                <?php endforeach; ?>
             <?php endif; ?>
-        </div>
+        <?php endif; ?>
         
         <a href="admin-login.php" class="admin-link" title="Admin Login">🔐</a>
         

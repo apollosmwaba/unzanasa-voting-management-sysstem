@@ -255,6 +255,48 @@ class Election {
         return $this->db->single();
     }
     
+    public function getAllElections() {
+        $this->db->query('SELECT * FROM elections ORDER BY start_date DESC');
+        return $this->db->resultSet();
+    }
+    
+    public function createElection($data) {
+        // Debug: Log the incoming data
+        error_log('Election data: ' . print_r($data, true));
+        
+        // Map form field names to database column names
+        $mappedData = [
+            'title' => $data['title'] ?? ($data['name'] ?? ''), // Handle both 'title' and 'name' for backward compatibility
+            'description' => $data['description'] ?? '',
+            'position' => $data['position'] ?? 'General', // Use provided position or default to 'General'
+            'start_date' => $data['start_date'] ?? date('Y-m-d H:i:s'),
+            'end_date' => $data['end_date'] ?? date('Y-m-d H:i:s', strtotime('+1 day')),
+            'status' => $data['status'] ?? 'draft',
+            'created_by' => $_SESSION['admin_id'] ?? 1
+        ];
+        
+        // Debug: Log the mapped data
+        error_log('Mapped data: ' . print_r($mappedData, true));
+        
+        // Build the SQL query with the correct column names
+        $sql = 'INSERT INTO elections (title, description, position, start_date, end_date, status, created_by) 
+                VALUES (:title, :description, :position, :start_date, :end_date, :status, :created_by)';
+        
+        $this->db->query($sql);
+        
+        // Bind values using the mapped data
+        foreach ($mappedData as $key => $value) {
+            $this->db->bind(':' . $key, $value);
+        }
+        
+        // Execute
+        if ($this->db->execute()) {
+            return $this->db->lastInsertId();
+        } else {
+            throw new Exception('Failed to create election');
+        }
+    }
+    
     public function getElectionStats() {
         $stats = [
             'total_elections' => 0,
@@ -304,6 +346,14 @@ class Candidate {
         $this->db->query('SELECT * FROM candidates WHERE id = :id');
         $this->db->bind(':id', $id);
         return $this->db->single();
+    }
+    
+    public function getAllCandidatesWithElections() {
+        $this->db->query('SELECT c.*, e.title as election_title, e.position 
+                         FROM candidates c 
+                         LEFT JOIN elections e ON c.election_id = e.id 
+                         ORDER BY e.title, c.name');
+        return $this->db->resultSet();
     }
 }
 
