@@ -9,6 +9,14 @@ session_start();
 // Load configuration
 require_once __DIR__ . '/application/config/config.php';
 
+// Autoload model classes
+spl_autoload_register(function ($class) {
+    $file = __DIR__ . '/application/models/' . $class . '.php';
+    if (file_exists($file)) {
+        require_once $file;
+    }
+});
+
 // Session helper class
 class Session {
     public static function set($key, $value) {
@@ -255,9 +263,34 @@ class Election {
         return $this->db->single();
     }
     
-    public function getAllElections() {
-        $this->db->query('SELECT * FROM elections ORDER BY start_date DESC');
-        return $this->db->resultSet();
+    public function getAllElections($filters = []) {
+        $sql = 'SELECT * FROM elections WHERE 1=1';
+        
+        // Add status filter if provided
+        if (!empty($filters['status'])) {
+            if ($filters['status'] === 'active') {
+                $sql .= ' AND start_date <= NOW() AND end_date >= NOW() AND status = "active"';
+            } else {
+                $sql .= ' AND status = :status';
+            }
+        }
+        
+        $sql .= ' ORDER BY start_date DESC';
+        
+        $this->db->query($sql);
+        
+        // Bind status parameter if it's not 'active' (for active, we use direct SQL for date comparison)
+        if (!empty($filters['status']) && $filters['status'] !== 'active') {
+            $this->db->bind(':status', $filters['status']);
+        }
+        
+        $result = $this->db->resultSet();
+        
+        // Debug: Log the query and results
+        error_log('Election Query: ' . $sql);
+        error_log('Election Results: ' . print_r($result, true));
+        
+        return $result;
     }
     
     public function createElection($data) {
@@ -331,29 +364,111 @@ class Election {
 // Candidate class
 class Candidate {
     private $db;
+    private $table = 'candidates';
 
     public function __construct() {
         $this->db = new Database();
     }
 
     public function getCandidatesByElection($electionId) {
-        $this->db->query('SELECT * FROM candidates WHERE election_id = :election_id');
+        $this->db->query('SELECT c.*, p.name as position_name 
+                         FROM ' . $this->table . ' c 
+                         LEFT JOIN positions p ON c.position_id = p.id 
+                         WHERE c.election_id = :election_id 
+                         ORDER BY p.priority, c.lastname, c.firstname');
         $this->db->bind(':election_id', $electionId);
         return $this->db->resultSet();
     }
 
     public function getCandidateById($id) {
-        $this->db->query('SELECT * FROM candidates WHERE id = :id');
+        $this->db->query('SELECT * FROM ' . $this->table . ' WHERE id = :id');
         $this->db->bind(':id', $id);
         return $this->db->single();
     }
     
     public function getAllCandidatesWithElections() {
-        $this->db->query('SELECT c.*, e.title as election_title, e.position 
-                         FROM candidates c 
+        $this->db->query('SELECT c.*, e.title as election_title, p.name as position_name 
+                         FROM ' . $this->table . ' c 
                          LEFT JOIN elections e ON c.election_id = e.id 
-                         ORDER BY e.title, c.name');
+                         LEFT JOIN positions p ON c.position_id = p.id 
+                         ORDER BY e.title, p.priority, c.lastname, c.firstname');
         return $this->db->resultSet();
+    }
+    
+    public function addCandidate($data) {
+        try {
+            $this->db->query('INSERT INTO ' . $this->table . ' 
+                            (firstname, lastname, name, position_id, election_id, platform, bio, photo, status) 
+                            VALUES (:firstname, :lastname, :name, :position_id, :election_id, :platform, :bio, :photo, :status)');
+            
+            // Bind values
+            $this->db->bind(':firstname', $data['firstname']);
+            $this->db->bind(':lastname', $data['lastname']);
+            $this->db->bind(':name', $data['name']);
+            $this->db->bind(':position_id', $data['position_id'], PDO::PARAM_INT);
+            $this->db->bind(':election_id', $data['election_id'], PDO::PARAM_INT);
+            $this->db->bind(':platform', $data['platform']);
+            $this->db->bind(':bio', $data['bio']);
+            $this->db->bind(':photo', $data['photo'] ?? null);
+            $this->db->bind(':status', $data['status'] ? 1 : 0, PDO::PARAM_INT);
+            
+            // Execute
+            $this->db->execute();
+            return $this->db->lastInsertId();
+        } catch (PDOException $e) {
+            error_log('Error adding candidate: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function updateCandidate($id, $data) {
+        try {
+            $sql = 'UPDATE ' . $this->table . ' SET 
+                    firstname = :firstname,
+                    lastname = :lastname,
+                    name = :name,
+                    position_id = :position_id,
+                    election_id = :election_id,
+                    platform = :platform,
+                    bio = :bio,' . 
+                    (isset($data['photo']) ? ' photo = :photo,' : '') . '
+                    status = :status,
+                    updated_at = CURRENT_TIMESTAMP
+                    WHERE id = :id';
+            
+            $this->db->query($sql);
+            
+            // Bind values
+            $this->db->bind(':firstname', $data['firstname']);
+            $this->db->bind(':lastname', $data['lastname']);
+            $this->db->bind(':name', $data['name']);
+            $this->db->bind(':position_id', $data['position_id'], PDO::PARAM_INT);
+            $this->db->bind(':election_id', $data['election_id'], PDO::PARAM_INT);
+            $this->db->bind(':platform', $data['platform']);
+            $this->db->bind(':bio', $data['bio']);
+            if (isset($data['photo'])) {
+                $this->db->bind(':photo', $data['photo']);
+            }
+            $this->db->bind(':status', $data['status'] ? 1 : 0, PDO::PARAM_INT);
+            $this->db->bind(':id', $id, PDO::PARAM_INT);
+            
+            // Execute
+            return $this->db->execute();
+        } catch (PDOException $e) {
+            error_log('Error updating candidate: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function deleteCandidate($id) {
+        try {
+            $this->db->query('DELETE FROM ' . $this->table . ' WHERE id = :id');
+            $this->db->bind(':id', $id, PDO::PARAM_INT);
+            return $this->db->execute();
+        } catch (PDOException $e) {
+            error_log('Error deleting candidate: ' . $e->getMessage());
+            return false;
+        }
     }
 }
 
