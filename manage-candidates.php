@@ -26,17 +26,16 @@ try {
     // Get only active elections using the model
     $elections = $electionModel->getAllElections(['status' => 'active']);
     
-    // Get active positions
-    $positions = $positionModel->getAllPositions(['status' => 1]);
+    // Get all positions (positions table doesn't have status field)
+    $positions = $positionModel->getAllPositions();
     
-    // Debug: Show elections at the top of the page if in development
+    // Store debug info for later display in the HTML body
+    $debugInfo = null;
     if (isset($_GET['debug'])) {
-        echo '<div class="container mt-4"><div class="alert alert-info">';
-        echo '<h4>Active Elections:</h4><pre>';
-        echo htmlspecialchars(print_r($elections, true));
-        echo '</pre><h4>Active Positions:</h4><pre>';
-        echo htmlspecialchars(print_r($positions, true));
-        echo '</pre></div></div>';
+        $debugInfo = [
+            'elections' => $elections,
+            'positions' => $positions
+        ];
     }
 } catch (Exception $e) {
     $message = 'Error loading required data: ' . $e->getMessage();
@@ -129,7 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'election_id' => $electionId,
             'platform' => $platform,
             'bio' => $bio,
-            'status' => $status,
             'photo' => $photoPath
         ];
         
@@ -261,6 +259,17 @@ try {
                 <?php if (!empty($message)): ?>
                     <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">
                         <?php echo $message; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if ($debugInfo): ?>
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <h4>Debug Information:</h4>
+                        <h5>Active Elections:</h5>
+                        <pre><?php echo htmlspecialchars(print_r($debugInfo['elections'], true)); ?></pre>
+                        <h5>Active Positions:</h5>
+                        <pre><?php echo htmlspecialchars(print_r($debugInfo['positions'], true)); ?></pre>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 <?php endif; ?>
@@ -509,6 +518,10 @@ try {
                                             </button>
                                         <?php endif; ?>
                                         
+                                        <button type="button" class="btn btn-outline-warning me-2" onclick="clearForm()">
+                                            <i class="fas fa-eraser me-1"></i> Clear Form
+                                        </button>
+                                        
                                         <button type="submit" class="btn btn-primary btn-lg">
                                             <i class="fas fa-save me-1"></i>
                                             <?php echo isset($editCandidate) ? 'Update' : 'Save'; ?> Candidate
@@ -519,6 +532,7 @@ try {
                         </div>
                     </form>
                 </div>
+{{ ... }}
             </div>
         </div>
         
@@ -527,18 +541,82 @@ try {
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2>Candidate List</h2>
-                    <a href="manage-candidates.php" class="btn btn-outline-primary">
-                        <i class="fas fa-plus me-1"></i> Add New Candidate
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="manage-candidates.php" class="btn btn-outline-primary">
+                            <i class="fas fa-plus me-1"></i> Add New Candidate
+                        </a>
+                        <button type="button" class="btn btn-outline-info" onclick="toggleBulkActions()">
+                            <i class="fas fa-tasks me-1"></i> Bulk Actions
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Search and Filter Section -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="searchCandidates" placeholder="Search candidates..." onkeyup="filterCandidates()">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterPosition" onchange="filterCandidates()">
+                            <option value="">All Positions</option>
+                            <?php foreach ($positions as $position): ?>
+                                <option value="<?php echo htmlspecialchars($position['name']); ?>">
+                                    <?php echo htmlspecialchars($position['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterStatus" onchange="filterCandidates()">
+                            <option value="">All Status</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                            <i class="fas fa-times me-1"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Bulk Actions Panel (Hidden by default) -->
+                <div id="bulkActionsPanel" class="alert alert-light border d-none mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Bulk Actions:</strong>
+                            <span id="selectedCount">0</span> candidate(s) selected
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-success" onclick="bulkActivate()">
+                                <i class="fas fa-check me-1"></i> Activate
+                            </button>
+                            <button type="button" class="btn btn-sm btn-warning" onclick="bulkDeactivate()">
+                                <i class="fas fa-pause me-1"></i> Deactivate
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="bulkDelete()">
+                                <i class="fas fa-trash me-1"></i> Delete
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+                                Clear Selection
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <?php if (empty($candidates)): ?>
                     <div class="alert alert-info">No candidates found. Add your first candidate using the form above.</div>
                 <?php else: ?>
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                        <table class="table table-striped table-hover" id="candidatesTable">
                             <thead class="table-light">
                                 <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                    </th>
                                     <th>Photo</th>
                                     <th>Name</th>
                                     <th>Position</th>
@@ -549,7 +627,12 @@ try {
                             </thead>
                             <tbody>
                                 <?php foreach ($candidates as $candidate): ?>
-                                    <tr>
+                                    <tr data-candidate-id="<?php echo $candidate['id']; ?>" 
+                                        data-position="<?php echo htmlspecialchars($candidate['position_name'] ?? ''); ?>"
+                                        data-status="<?php echo $candidate['status'] ? 'Active' : 'Inactive'; ?>">
+                                        <td>
+                                            <input type="checkbox" class="candidate-checkbox" value="<?php echo $candidate['id']; ?>" onchange="updateBulkActions()">
+                                        </td>
                                         <td>
                                             <?php if (!empty($candidate['photo'])): ?>
                                                 <img src="<?php echo htmlspecialchars($candidate['photo']); ?>" 
@@ -571,14 +654,20 @@ try {
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="?edit=<?php echo $candidate['id']; ?>" class="btn btn-sm btn-outline-primary me-1" 
-                                               title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                    onclick="confirmDelete(<?php echo $candidate['id']; ?>)" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-sm btn-outline-info" 
+                                                        onclick="viewCandidate(<?php echo $candidate['id']; ?>)" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <a href="?edit=<?php echo $candidate['id']; ?>" class="btn btn-sm btn-outline-primary" 
+                                                   title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                        onclick="confirmDelete(<?php echo $candidate['id']; ?>)" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -622,6 +711,144 @@ try {
             }
         }
         
+        // Clear form function
+        function clearForm() {
+            if (confirm('Are you sure you want to clear all form data?')) {
+                document.querySelector('form').reset();
+                // Clear photo preview
+                const previewContainer = document.querySelector('.photo-preview-container');
+                if (previewContainer) {
+                    previewContainer.remove();
+                }
+                // Remove validation classes
+                document.querySelector('form').classList.remove('was-validated');
+            }
+        }
+        
+        // Filter candidates function
+        function filterCandidates() {
+            const searchTerm = document.getElementById('searchCandidates').value.toLowerCase();
+            const positionFilter = document.getElementById('filterPosition').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const table = document.getElementById('candidatesTable');
+            const rows = table.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const name = row.cells[2].textContent.toLowerCase();
+                const position = row.dataset.position;
+                const status = row.dataset.status;
+                
+                const matchesSearch = name.includes(searchTerm);
+                const matchesPosition = !positionFilter || position === positionFilter;
+                const matchesStatus = !statusFilter || status === statusFilter;
+                
+                if (matchesSearch && matchesPosition && matchesStatus) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Clear filters function
+        function clearFilters() {
+            document.getElementById('searchCandidates').value = '';
+            document.getElementById('filterPosition').value = '';
+            document.getElementById('filterStatus').value = '';
+            filterCandidates();
+        }
+        
+        // Toggle bulk actions panel
+        function toggleBulkActions() {
+            const panel = document.getElementById('bulkActionsPanel');
+            panel.classList.toggle('d-none');
+        }
+        
+        // Toggle select all checkboxes
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.candidate-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            updateBulkActions();
+        }
+        
+        // Update bulk actions based on selection
+        function updateBulkActions() {
+            const checkboxes = document.querySelectorAll('.candidate-checkbox:checked');
+            const count = checkboxes.length;
+            document.getElementById('selectedCount').textContent = count;
+            
+            // Update select all checkbox state
+            const allCheckboxes = document.querySelectorAll('.candidate-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            selectAll.checked = count === allCheckboxes.length;
+            selectAll.indeterminate = count > 0 && count < allCheckboxes.length;
+        }
+        
+        // Clear selection
+        function clearSelection() {
+            document.querySelectorAll('.candidate-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.getElementById('selectAll').checked = false;
+            updateBulkActions();
+        }
+        
+        // Bulk operations (placeholder functions - you'll need to implement server-side handling)
+        function bulkActivate() {
+            const selected = getSelectedCandidates();
+            if (selected.length === 0) {
+                alert('Please select candidates to activate.');
+                return;
+            }
+            if (confirm(`Activate ${selected.length} candidate(s)?`)) {
+                // Implement server-side bulk activation
+                console.log('Bulk activate:', selected);
+                alert('Bulk activation feature needs server-side implementation.');
+            }
+        }
+        
+        function bulkDeactivate() {
+            const selected = getSelectedCandidates();
+            if (selected.length === 0) {
+                alert('Please select candidates to deactivate.');
+                return;
+            }
+            if (confirm(`Deactivate ${selected.length} candidate(s)?`)) {
+                // Implement server-side bulk deactivation
+                console.log('Bulk deactivate:', selected);
+                alert('Bulk deactivation feature needs server-side implementation.');
+            }
+        }
+        
+        function bulkDelete() {
+            const selected = getSelectedCandidates();
+            if (selected.length === 0) {
+                alert('Please select candidates to delete.');
+                return;
+            }
+            if (confirm(`Delete ${selected.length} candidate(s)? This action cannot be undone.`)) {
+                // Implement server-side bulk deletion
+                console.log('Bulk delete:', selected);
+                alert('Bulk deletion feature needs server-side implementation.');
+            }
+        }
+        
+        // Get selected candidate IDs
+        function getSelectedCandidates() {
+            const checkboxes = document.querySelectorAll('.candidate-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        // View candidate details (modal or new page)
+        function viewCandidate(candidateId) {
+            // For now, redirect to edit page in view mode
+            // You could implement a modal view instead
+            window.open(`?edit=${candidateId}&view=1`, '_blank');
+        }
+        
         // Preview image before upload
         document.getElementById('photo').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -658,3 +885,4 @@ try {
     </script>
 </body>
 </html>
+

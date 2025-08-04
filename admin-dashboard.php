@@ -33,12 +33,12 @@ try {
     $db = new Database();
     $db->query('SELECT COUNT(*) as total_votes FROM votes');
     $result = $db->single();
-    $totalVotes = $result->total_votes ?? 0;
+    $totalVotes = $result['total_votes'] ?? 0;
     
     // Get total candidates
     $db->query('SELECT COUNT(*) as total_candidates FROM candidates');
     $result = $db->single();
-    $totalCandidates = $result->total_candidates ?? 0;
+    $totalCandidates = $result['total_candidates'] ?? 0;
     
     // Get recent activity (last 5 votes)
     $db->query('SELECT v.*, e.title as election_name, c.name as candidate_name 

@@ -1,7 +1,10 @@
 <?php
-// Main entry point for the application
+/**
+ * UNZANASA Student Union Voting System
+ * Main Entry Point
+ */
 
-// Redirect to the voting page
+// Simple redirect to the main voting page
 header('Location: vote.php');
 exit;
-//
+?>

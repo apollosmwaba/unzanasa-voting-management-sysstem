@@ -33,8 +33,8 @@ if ($selectedElectionId) {
         foreach ($candidates as $candidate) {
             $voteCount = 0;
             foreach ($voteCounts as $vc) {
-                if ($vc->candidate_id == $candidate->id) {
-                    $voteCount = (int)$vc->vote_count;
+                if ($vc['candidate_id'] == $candidate['id']) {
+                    $voteCount = (int)$vc['vote_count'];
                     break;
                 }
             }

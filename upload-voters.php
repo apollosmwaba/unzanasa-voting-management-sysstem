@@ -9,143 +9,103 @@ Auth::requireAuth();
 $message = '';
 $messageType = '';
 $elections = [];
+$selectedElection = null;
+$turnoutData = [];
+$turnoutStats = [];
 
-// Get all active elections for the dropdown
+// Get all elections for the dropdown
 $electionModel = new Election();
 try {
-    $elections = $electionModel->getAllElections(['status' => 'active']);
+    $elections = $electionModel->getAllElections();
 } catch (Exception $e) {
     $message = 'Error loading elections: ' . $e->getMessage();
     $messageType = 'danger';
     error_log($message);
 }
 
-// Handle file upload
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['voters_file'])) {
-    $electionId = (int)($_POST['election_id'] ?? 0);
-    $file = $_FILES['voters_file'];
+// Handle election selection for turnout report
+if (isset($_GET['election_id']) && !empty($_GET['election_id'])) {
+    $electionId = (int)$_GET['election_id'];
     
-    // Validate input
-    $errors = [];
-    
-    if ($electionId <= 0) {
-        $errors[] = 'Please select an election';
-    }
-    
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        $errors[] = 'Error uploading file. Please try again.';
-    } else {
-        // Check file type (only allow CSV)
-        $fileType = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if ($fileType !== 'csv') {
-            $errors[] = 'Only CSV files are allowed.';
-        }
+    try {
+        // Get election details
+        $selectedElection = $electionModel->getElectionById($electionId);
         
-        // Check file size (max 5MB)
-        if ($file['size'] > 5 * 1024 * 1024) {
-            $errors[] = 'File is too large. Maximum size is 5MB.';
-        }
-    }
-    
-    // If no validation errors, process the file
-    if (empty($errors)) {
-        try {
-            // Open the uploaded file
-            $handle = fopen($file['tmp_name'], 'r');
+        if ($selectedElection) {
+            $db = new Database();
             
-            if ($handle === false) {
-                throw new Exception('Failed to open the uploaded file.');
+            // Get turnout data - voters who have voted (with computer numbers)
+            $db->query("
+                SELECT DISTINCT 
+                    vr.voter_id as computer_number,
+                    v.voted_at,
+                    DATE_FORMAT(v.voted_at, '%M %d, %Y at %h:%i %p') as formatted_time,
+                    HOUR(v.voted_at) as vote_hour
+                FROM votes v 
+                INNER JOIN voters vr ON v.voter_id = vr.id 
+                WHERE v.election_id = :election_id 
+                ORDER BY v.voted_at DESC
+            ");
+            $db->bind(':election_id', $electionId);
+            $turnoutData = $db->resultSet();
+            
+            // Calculate turnout statistics
+            $totalVotes = count($turnoutData);
+            
+            // Get total registered voters for this election (from valid_computer_numbers)
+            $db->query("SELECT COUNT(*) as total FROM valid_computer_numbers WHERE is_active = 1");
+            $totalRegistered = $db->single()['total'] ?? 0;
+            
+            // Calculate turnout percentage
+            $turnoutPercentage = $totalRegistered > 0 ? round(($totalVotes / $totalRegistered) * 100, 2) : 0;
+            
+            // Get hourly voting distribution
+            $hourlyVotes = [];
+            foreach ($turnoutData as $vote) {
+                $hour = $vote['vote_hour'];
+                $hourlyVotes[$hour] = ($hourlyVotes[$hour] ?? 0) + 1;
             }
             
-            // Initialize counters
-            $imported = 0;
-            $skipped = 0;
-            $lineNumber = 0;
-            $voterModel = new Voter();
-            
-            // Read the file line by line
-            while (($data = fgetcsv($handle, 1000, ',')) !== false) {
-                $lineNumber++;
-                
-                // Skip header row
-                if ($lineNumber === 1) {
-                    continue;
-                }
-                
-                // Expected columns: computer_number, full_name, email, phone (adjust as needed)
-                if (count($data) < 2) {
-                    $skipped++;
-                    continue;
-                }
-                
-                $computerNumber = trim($data[0]);
-                $fullName = trim($data[1]);
-                $email = isset($data[2]) ? trim($data[2]) : '';
-                $phone = isset($data[3]) ? trim($data[3]) : '';
-                
-                // Basic validation
-                if (empty($computerNumber) || empty($fullName)) {
-                    $skipped++;
-                    continue;
-                }
-                
-                // Generate a random password
-                $password = Utils::generateRandomString(8);
-                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-                
-                // Prepare voter data
-                $voterData = [
-                    'computer_number' => $computerNumber,
-                    'full_name' => $fullName,
-                    'email' => $email,
-                    'phone' => $phone,
-                    'password' => $hashedPassword,
-                    'election_id' => $electionId,
-                    'plain_password' => $password // For email purposes (not stored in DB)
-                ];
-                
-                try {
-                    // Check if voter already exists for this election
-                    $existingVoter = $voterModel->getVoterByComputerNumber($computerNumber, $electionId);
-                    
-                    if ($existingVoter) {
-                        // Update existing voter
-                        $voterModel->updateVoter($existingVoter['id'], $voterData);
-                    } else {
-                        // Create new voter
-                        $voterModel->createVoter($voterData);
-                    }
-                    
-                    $imported++;
-                    
-                    // TODO: Send email to voter with login credentials
-                    // $this->sendVoterCredentials($email, $fullName, $computerNumber, $password);
-                    
-                } catch (Exception $e) {
-                    error_log("Error processing voter on line {$lineNumber}: " . $e->getMessage());
-                    $skipped++;
-                    continue;
+            // Get peak voting hour
+            $peakHour = 0;
+            $peakVotes = 0;
+            foreach ($hourlyVotes as $hour => $votes) {
+                if ($votes > $peakVotes) {
+                    $peakVotes = $votes;
+                    $peakHour = $hour;
                 }
             }
             
-            fclose($handle);
+            // Get voting timeline (votes per day)
+            $db->query("
+                SELECT 
+                    DATE(v.voted_at) as vote_date,
+                    COUNT(*) as daily_votes
+                FROM votes v 
+                WHERE v.election_id = :election_id 
+                GROUP BY DATE(v.voted_at)
+                ORDER BY vote_date ASC
+            ");
+            $db->bind(':election_id', $electionId);
+            $dailyVotes = $db->resultSet();
             
-            // Set success message
-            $message = "Successfully imported {$imported} voters. " . 
-                      ($skipped > 0 ? "Skipped {$skipped} invalid or duplicate entries." : "");
-            $messageType = 'success';
-            
-        } catch (Exception $e) {
-            $message = 'Error processing file: ' . $e->getMessage();
-            $messageType = 'danger';
-            error_log($message);
+            $turnoutStats = [
+                'total_votes' => $totalVotes,
+                'total_registered' => $totalRegistered,
+                'turnout_percentage' => $turnoutPercentage,
+                'peak_hour' => $peakHour,
+                'peak_votes' => $peakVotes,
+                'hourly_votes' => $hourlyVotes,
+                'daily_votes' => $dailyVotes
+            ];
         }
-    } else {
-        $message = implode('<br>', $errors);
+    } catch (Exception $e) {
+        $message = 'Error loading turnout data: ' . $e->getMessage();
         $messageType = 'danger';
+        error_log($message);
     }
 }
 
 // Include the view
-include __DIR__ . '/application/views/upload-voters.php';
+include __DIR__ . '/application/views/voter-turnout.php';
 ?>

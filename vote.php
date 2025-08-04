@@ -230,27 +230,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php else: ?>
                     <?php foreach ($activeElections as $election): 
-                        $candidates = $candidateModel->getCandidatesByElection($election->id);
+                        $candidates = $candidateModel->getCandidatesByElection($election['id']);
                         if (empty($candidates)) continue;
                     ?>
                         <div class="election-card mb-4">
-                            <h2 class="h4 mb-3"><?= htmlspecialchars($election->title) ?></h2>
-                            <?php if (!empty($election->description)): ?>
-                                <p class="text-muted mb-3"><?= htmlspecialchars($election->description) ?></p>
+                            <h2 class="h4 mb-3"><?= htmlspecialchars($election['title']) ?></h2>
+                            <?php if (!empty($election['description'])): ?>
+                                <p class="text-muted mb-3"><?= htmlspecialchars($election['description']) ?></p>
                             <?php endif; ?>
                             
                             <div class="election-meta mb-4">
                                 <span class="badge bg-info text-dark">
-                                    🗓️ <?= date('F j, Y', strtotime($election->start_date)) ?> - <?= date('F j, Y', strtotime($election->end_date)) ?>
+                                    🗓️ <?= date('F j, Y', strtotime($election['start_date'])) ?> - <?= date('F j, Y', strtotime($election['end_date'])) ?>
                                 </span>
                                 <span class="badge bg-secondary ms-2">
-                                    Position: <?= htmlspecialchars($election->position ?? 'General') ?>
+                                    Position: <?= htmlspecialchars($election['position'] ?? 'General') ?>
                                 </span>
                             </div>
                             
                             <form method="POST" class="candidates-list">
                                 <input type="hidden" name="action" value="vote">
-                                <input type="hidden" name="election_id" value="<?= $election->id ?>">
+                                <input type="hidden" name="election_id" value="<?= $election['id'] ?>">
                                 <input type="hidden" name="computer_number" value="<?= htmlspecialchars($_SESSION['voter_computer_number']) ?>">
                                 
                                 <h5 class="mb-3">Select your candidate:</h5>
@@ -259,25 +259,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <div class="col-md-6 mb-3">
                                             <div class="candidate-option">
                                                 <input type="radio" 
-                                                       id="candidate_<?= $candidate->id ?>_<?= $election->id ?>" 
+                                                       id="candidate_<?= $candidate['id'] ?>_<?= $election['id'] ?>" 
                                                        name="candidate_id" 
-                                                       value="<?= $candidate->id ?>"
+                                                       value="<?= $candidate['id'] ?>"
                                                        required>
-                                                <label for="candidate_<?= $candidate->id ?>_<?= $election->id ?>">
+                                                <label for="candidate_<?= $candidate['id'] ?>_<?= $election['id'] ?>">
                                                     <div class="candidate-card">
                                                         <div class="candidate-photo">
-                                                            <?php if (!empty($candidate->photo)): ?>
-                                                                <img src="<?= htmlspecialchars($candidate->photo) ?>" 
-                                                                     alt="<?= htmlspecialchars($candidate->name) ?>" 
+                                                            <?php if (!empty($candidate['photo'])): ?>
+                                                                <img src="<?= htmlspecialchars($candidate['photo']) ?>" 
+                                                                     alt="<?= htmlspecialchars($candidate['name']) ?>" 
                                                                      onerror="this.onerror=null; this.parentElement.innerHTML='👤';">
                                                             <?php else: ?>
                                                                 👤
                                                             <?php endif; ?>
                                                         </div>
                                                         <div class="candidate-details">
-                                                            <h4><?= htmlspecialchars($candidate->name) ?></h4>
-                                                            <?php if (!empty($candidate->bio)): ?>
-                                                                <p class="candidate-bio"><?= nl2br(htmlspecialchars($candidate->bio)) ?></p>
+                                                            <h4><?= htmlspecialchars($candidate['name']) ?></h4>
+                                                            <?php if (!empty($candidate['bio'])): ?>
+                                                                <p class="candidate-bio"><?= nl2br(htmlspecialchars($candidate['bio'])) ?></p>
                                                             <?php endif; ?>
                                                         </div>
                                                     </div>

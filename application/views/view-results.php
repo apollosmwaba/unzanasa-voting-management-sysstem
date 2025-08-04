@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Results - UNZANASA Voting System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .results-container {
@@ -74,7 +75,25 @@
     </style>
 </head>
 <body>
-    <?php include __DIR__ . '/includes/header.php'; ?>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="admin-dashboard.php">
+                <i class="fas fa-vote-yea me-2"></i>UNZANASA Voting System
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="admin-dashboard.php">
+                    <i class="fas fa-home me-1"></i>Home
+                </a>
+                <a class="nav-link" href="upload-voters.php">
+                    <i class="fas fa-users me-1"></i>Voter Turnout
+                </a>
+                <a class="nav-link" href="logout.php">
+                    <i class="fas fa-sign-out-alt me-1"></i>Admin Logout
+                </a>
+            </div>
+        </div>
+    </nav>
     
     <div class="results-container">
         <div class="election-selector">
@@ -84,10 +103,10 @@
                     <select name="election_id" class="form-select" onchange="this.form.submit()">
                         <option value="">-- Select Election --</option>
                         <?php foreach ($elections as $election): ?>
-                            <option value="<?php echo $election->id; ?>" 
-                                <?php echo ($selectedElection && $selectedElection->id == $election->id) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($election->name); ?> 
-                                (<?php echo date('M j, Y', strtotime($election->start_date)); ?> - <?php echo date('M j, Y', strtotime($election->end_date)); ?>)
+                            <option value="<?php echo $election['id']; ?>" 
+                                <?php echo ($selectedElection && $selectedElection['id'] == $election['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($election['title']); ?> 
+                                (<?php echo date('M j, Y', strtotime($election['start_date'])); ?> - <?php echo date('M j, Y', strtotime($election['end_date'])); ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -100,12 +119,12 @@
         
         <?php if ($selectedElection): ?>
             <div class="results-summary">
-                <h3><?php echo htmlspecialchars($selectedElection->name); ?></h3>
+                <h3><?php echo htmlspecialchars($selectedElection['title']); ?></h3>
                 <p class="text-muted">
-                    <?php echo date('F j, Y', strtotime($selectedElection->start_date)); ?> to 
-                    <?php echo date('F j, Y', strtotime($selectedElection->end_date)); ?>
+                    <?php echo date('F j, Y', strtotime($selectedElection['start_date'])); ?> to 
+                    <?php echo date('F j, Y', strtotime($selectedElection['end_date'])); ?>
                 </p>
-                <p><?php echo nl2br(htmlspecialchars($selectedElection->description)); ?></p>
+                <p><?php echo nl2br(htmlspecialchars($selectedElection['description'] ?? 'No description available')); ?></p>
                 
                 <div class="row mt-4">
                     <div class="col-md-4">
@@ -131,8 +150,8 @@
                                 <h4 class="mb-0">
                                     <?php 
                                     $now = new DateTime();
-                                    $startDate = new DateTime($selectedElection->start_date);
-                                    $endDate = new DateTime($selectedElection->end_date);
+                                    $startDate = new DateTime($selectedElection['start_date']);
+                                    $endDate = new DateTime($selectedElection['end_date']);
                                     
                                     if ($now < $startDate) {
                                         echo '<span class="badge bg-warning">Upcoming</span>';
@@ -177,15 +196,15 @@
                                     <div class="candidate-card">
                                         <div class="row g-0">
                                             <div class="col-md-3">
-                                                <img src="<?php echo !empty($candidate->photo) ? htmlspecialchars($candidate->photo) : 'assets/img/default-avatar.png'; ?>" 
-                                                     alt="<?php echo htmlspecialchars($candidate->name); ?>" 
+                                                <img src="<?php echo !empty($candidate['photo']) ? htmlspecialchars($candidate['photo']) : 'assets/img/default-avatar.png'; ?>" 
+                                                     alt="<?php echo htmlspecialchars($candidate['name']); ?>" 
                                                      class="candidate-photo">
                                             </div>
                                             <div class="col-md-9">
                                                 <div class="p-3">
                                                     <div class="d-flex justify-content-between align-items-start">
                                                         <h5 class="mb-1">
-                                                            <?php echo htmlspecialchars($candidate->name); ?>
+                                                            <?php echo htmlspecialchars($candidate['name']); ?>
                                                             <?php if ($isWinner): ?>
                                                                 <span class="badge-winner">Winner</span>
                                                             <?php endif; ?>
@@ -195,7 +214,7 @@
                                                             <small class="text-muted">votes</small>
                                                         </h4>
                                                     </div>
-                                                    <p class="text-muted mb-2"><?php echo htmlspecialchars($candidate->position); ?></p>
+                                                    <p class="text-muted mb-2"><?php echo htmlspecialchars($candidate['position'] ?? 'Position'); ?></p>
                                                     
                                                     <div class="d-flex justify-content-between mb-1">
                                                         <small>Vote Percentage</small>
@@ -308,7 +327,7 @@
                     
                     // Prepare chart data
                     const labels = <?php echo json_encode(array_map(function($r) { 
-                        return $r['candidate']->name; 
+                        return $r['candidate']['name']; 
                     }, $results)); ?>;
                     
                     const data = <?php echo json_encode(array_map(function($r) { 
@@ -385,9 +404,6 @@
         <?php endif; ?>
     </div>
     
-    <?php include __DIR__ . '/includes/footer.php'; ?>
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://kit.fontawesome.com/your-code.js" crossorigin="anonymous"></script>
 </body>
 </html>

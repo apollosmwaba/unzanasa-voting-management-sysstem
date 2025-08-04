@@ -65,17 +65,19 @@ class Position {
      */
     public function addPosition($data) {
         try {
-            $sql = "INSERT INTO " . $this->table . " (name, description, max_vote, priority, status) 
-                    VALUES (:name, :description, :max_vote, :priority, :status)";
+            $sql = "INSERT INTO " . $this->table . " (election_id, title, name, description, max_vote, display_order, priority) 
+                    VALUES (:election_id, :title, :name, :description, :max_vote, :display_order, :priority)";
             
             $this->db->query($sql);
             
             // Bind values
+            $this->db->bind(':election_id', $data['election_id'] ?? 0, PDO::PARAM_INT);
+            $this->db->bind(':title', $data['title'] ?? $data['name'] ?? '');
             $this->db->bind(':name', $data['name'] ?? '');
             $this->db->bind(':description', $data['description'] ?? '');
             $this->db->bind(':max_vote', $data['max_vote'] ?? 1, PDO::PARAM_INT);
+            $this->db->bind(':display_order', $data['display_order'] ?? 0, PDO::PARAM_INT);
             $this->db->bind(':priority', $data['priority'] ?? 0, PDO::PARAM_INT);
-            $this->db->bind(':status', $data['status'] ?? 1, PDO::PARAM_INT);
             
             // Execute
             if ($this->db->execute()) {

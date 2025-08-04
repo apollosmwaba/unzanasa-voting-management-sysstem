@@ -7,9 +7,18 @@ Auth::requireAuth();
 
 // Initialize variables
 $electionModel = new Election();
+$positionModel = new Position();
 $message = '';
 $messageType = '';
 $elections = []; // Initialize as empty array by default
+
+// Handle flash messages
+if (isset($_SESSION['flash_message'])) {
+    $message = $_SESSION['flash_message'];
+    $messageType = $_SESSION['flash_type'] ?? 'info';
+    unset($_SESSION['flash_message']);
+    unset($_SESSION['flash_type']);
+}
 
 // Handle form submission for adding/editing an election
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -44,28 +53,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Maximum votes per voter must be at least 1';
     }
     
+    // Validate positions
+    $positions = $_POST['positions'] ?? [];
+    if (empty($positions)) {
+        $errors[] = 'At least one position is required';
+    } else {
+        foreach ($positions as $index => $position) {
+            if (empty(trim($position['title'] ?? ''))) {
+                $errors[] = "Position #" . ($index + 1) . " title is required";
+            }
+        }
+    }
+    
     // If no validation errors, save the election
     if (empty($errors)) {
         $electionData = [
             'title' => $title,
+            'name' => $title, // Use title as name
             'description' => $description,
             'start_date' => $startDate,
             'end_date' => $endDate,
             'status' => $status,
-            'max_votes' => $maxVotes
+            'created_by' => $_SESSION['admin_user']['id'] ?? 1
         ];
         
         try {
             if ($id) {
                 // Update existing election
                 $electionModel->updateElection($id, $electionData);
+                
+                // For now, just update the election. Position management can be added later
+                // TODO: Add position update functionality
+                
                 $message = 'Election updated successfully';
             } else {
                 // Create new election
-                $electionModel->createElection($electionData);
-                $message = 'Election created successfully';
+                $electionId = $electionModel->createElection($electionData);
+                
+                // Create positions
+                foreach ($positions as $position) {
+                    $positionData = [
+                        'election_id' => $electionId,
+                        'title' => trim($position['title']),
+                        'name' => trim($position['title']),
+                        'description' => trim($position['description'] ?? ''),
+                        'max_vote' => (int)($position['max_vote'] ?? 1),
+                        'display_order' => (int)($position['display_order'] ?? 1),
+                        'priority' => (int)($position['display_order'] ?? 1)
+                    ];
+                    $positionModel->addPosition($positionData);
+                }
+                
+                $message = 'Election and positions created successfully';
             }
             $messageType = 'success';
+            // Redirect to prevent form resubmission
+            $_SESSION['flash_message'] = $message;
+            $_SESSION['flash_type'] = $messageType;
+            header('Location: manage-elections.php');
+            exit;
         } catch (Exception $e) {
             $message = 'Error saving election: ' . $e->getMessage();
             $messageType = 'danger';
@@ -80,12 +126,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     try {
         $electionModel->deleteElection($_GET['id']);
-        $message = 'Election deleted successfully';
-        $messageType = 'success';
+        $_SESSION['flash_message'] = 'Election deleted successfully';
+        $_SESSION['flash_type'] = 'success';
     } catch (Exception $e) {
-        $message = 'Error deleting election: ' . $e->getMessage();
-        $messageType = 'danger';
+        $_SESSION['flash_message'] = 'Error deleting election: ' . $e->getMessage();
+        $_SESSION['flash_type'] = 'danger';
     }
+    header('Location: manage-elections.php');
+    exit;
 }
 
 // Handle status toggle
@@ -93,12 +141,14 @@ if (isset($_GET['action']) && isset($_GET['id']) && ($_GET['action'] === 'activa
     $newStatus = $_GET['action'] === 'activate' ? 'active' : 'inactive';
     try {
         $electionModel->updateElectionStatus($_GET['id'], $newStatus);
-        $message = 'Election status updated successfully';
-        $messageType = 'success';
+        $_SESSION['flash_message'] = 'Election status updated successfully';
+        $_SESSION['flash_type'] = 'success';
     } catch (Exception $e) {
-        $message = 'Error updating election status: ' . $e->getMessage();
-        $messageType = 'danger';
+        $_SESSION['flash_message'] = 'Error updating election status: ' . $e->getMessage();
+        $_SESSION['flash_type'] = 'danger';
     }
+    header('Location: manage-elections.php');
+    exit;
 }
 
 // Get all elections
