@@ -4,3 +4,4 @@
 // Redirect to the voting page
 header('Location: vote.php');
 exit;
+//
