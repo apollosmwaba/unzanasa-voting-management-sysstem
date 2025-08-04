@@ -23,18 +23,8 @@ $errors = [];
 
 // Load common data
 try {
-    // Debug: Check database directly for active elections
-    $db = new Database();
-    $db->query("SELECT * FROM elections WHERE status = 'active' AND start_date <= NOW() AND end_date >= NOW()");
-    $activeElections = $db->resultSet();
-    error_log('Direct DB Query - Active Elections: ' . print_r($activeElections, true));
-    
     // Get only active elections using the model
     $elections = $electionModel->getAllElections(['status' => 'active']);
-    
-    // Debug: Log the elections being loaded
-    $debug_info = 'Active elections loaded: ' . print_r($elections, true);
-    error_log($debug_info);
     
     // Get active positions
     $positions = $positionModel->getAllPositions(['status' => 1]);
@@ -42,9 +32,7 @@ try {
     // Debug: Show elections at the top of the page if in development
     if (isset($_GET['debug'])) {
         echo '<div class="container mt-4"><div class="alert alert-info">';
-        echo '<h4>Database Check - Active Elections:</h4><pre>';
-        echo htmlspecialchars(print_r($activeElections, true));
-        echo '</pre><h4>Model Results - Active Elections:</h4><pre>';
+        echo '<h4>Active Elections:</h4><pre>';
         echo htmlspecialchars(print_r($elections, true));
         echo '</pre><h4>Active Positions:</h4><pre>';
         echo htmlspecialchars(print_r($positions, true));
@@ -479,7 +467,7 @@ try {
                                     <label class="form-label">
                                         <i class="far fa-calendar-plus me-1"></i> Date Created
                                     </label>
-                                    <input type="text" class="form-control" value="<?php echo date('F j, Y, g:i a', strtotime($editCandidate['created_at'])); ?>" readonly>
+                                    <input type="text" class="form-control" value="<?php echo isset($editCandidate['created_at']) ? date('F j, Y, g:i a', strtotime($editCandidate['created_at'])) : 'N/A'; ?>" readonly>
                                 </div>
                             </div>
                             
@@ -488,7 +476,7 @@ try {
                                     <label class="form-label">
                                         <i class="far fa-calendar-check me-1"></i> Last Updated
                                     </label>
-                                    <input type="text" class="form-control" value="<?php echo date('F j, Y, g:i a', strtotime($editCandidate['updated_at'])); ?>" readonly>
+                                    <input type="text" class="form-control" value="<?php echo isset($editCandidate['updated_at']) ? date('F j, Y, g:i a', strtotime($editCandidate['updated_at'])) : 'N/A'; ?>" readonly>
                                 </div>
                             </div>
                         </div>
@@ -640,19 +628,23 @@ try {
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const preview = document.createElement('img');
-                    preview.src = e.target.result;
-                    preview.className = 'candidate-photo img-thumbnail mb-2';
-                    preview.style.display = 'block';
-                    
-                    const container = document.querySelector('.form-group:has(#photo)');
-                    const existingPreview = container.querySelector('img');
-                    
-                    if (existingPreview) {
-                        container.replaceChild(preview, existingPreview);
-                    } else {
-                        container.insertBefore(preview, document.getElementById('photo'));
+                    // Find or create preview container
+                    let previewContainer = document.querySelector('.photo-preview-container');
+                    if (!previewContainer) {
+                        previewContainer = document.createElement('div');
+                        previewContainer.className = 'photo-preview-container mb-3 text-center';
+                        document.getElementById('photo').parentNode.appendChild(previewContainer);
                     }
+                    
+                    // Create or update preview image
+                    let preview = previewContainer.querySelector('img');
+                    if (!preview) {
+                        preview = document.createElement('img');
+                        preview.className = 'candidate-photo img-thumbnail';
+                        previewContainer.appendChild(preview);
+                    }
+                    
+                    preview.src = e.target.result;
                     
                     // Uncheck remove photo if it was checked
                     const removeCheckbox = document.getElementById('remove_photo');

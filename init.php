@@ -386,12 +386,20 @@ class Candidate {
         return $this->db->single();
     }
     
-    public function getAllCandidatesWithElections() {
-        $this->db->query('SELECT c.*, e.title as election_title, p.name as position_name 
-                         FROM ' . $this->table . ' c 
-                         LEFT JOIN elections e ON c.election_id = e.id 
-                         LEFT JOIN positions p ON c.position_id = p.id 
-                         ORDER BY e.title, p.priority, c.lastname, c.firstname');
+    public function getAllCandidatesWithElections($activeOnly = true) {
+        $sql = 'SELECT c.*, e.title as election_title, p.name as position_name, 
+                e.status as election_status, e.start_date, e.end_date
+                FROM ' . $this->table . ' c 
+                LEFT JOIN elections e ON c.election_id = e.id 
+                LEFT JOIN positions p ON c.position_id = p.id ';
+        
+        if ($activeOnly) {
+            $sql .= ' WHERE e.status = "active" AND e.start_date <= NOW() AND e.end_date >= NOW() ';
+        }
+        
+        $sql .= ' ORDER BY e.title, p.priority, c.lastname, c.firstname';
+        
+        $this->db->query($sql);
         return $this->db->resultSet();
     }
     
