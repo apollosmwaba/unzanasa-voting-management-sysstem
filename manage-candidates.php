@@ -23,8 +23,8 @@ $errors = [];
 
 // Load common data
 try {
-    // Get only active elections using the model
-    $elections = $electionModel->getAllElections(['status' => 'active']);
+    // Get all elections (not just active ones) for candidate management
+    $elections = $electionModel->getAllElections();
     
     // Get all positions (positions table doesn't have status field)
     $positions = $positionModel->getAllPositions();
@@ -404,7 +404,7 @@ try {
                                         <i class="fas fa-vote-yea me-1"></i> Election <span class="text-danger">*</span>
                                     </label>
                                     <select class="form-select form-select-lg" id="election_id" name="election_id" required>
-                                        <option value="">-- Select Active Election --</option>
+                                        <option value="">-- Select Election --</option>
                                         <?php if (!empty($elections)): ?>
                                             <?php foreach ($elections as $election): ?>
                                                 <option value="<?php echo $election['id']; ?>"
@@ -415,7 +415,7 @@ try {
                                                 </option>
                                             <?php endforeach; ?>
                                         <?php else: ?>
-                                            <option value="" disabled>No active elections found</option>
+                                            <option value="" disabled>No elections found</option>
                                         <?php endif; ?>
                                     </select>
                                     <div class="invalid-feedback">

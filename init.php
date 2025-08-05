@@ -512,7 +512,7 @@ class Candidate {
         return $this->db->single();
     }
     
-    public function getAllCandidatesWithElections($activeOnly = true) {
+    public function getAllCandidatesWithElections($activeOnly = false) {
         $sql = 'SELECT c.*, e.title as election_title, p.name as position_name, 
                 e.status as election_status, e.start_date, e.end_date
                 FROM ' . $this->table . ' c 
