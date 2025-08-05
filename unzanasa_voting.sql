@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost: 8082
--- Generation Time: Aug 05, 2025 at 02:57 AM
+-- Generation Time: Aug 05, 2025 at 03:43 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -42,9 +42,10 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `username`, `password`, `email`, `full_name`, `created_at`, `last_login`) VALUES
-(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@unzanasa.com', 'System Administrator', '2025-08-03 00:12:29', NULL),
 (24, 'debugtest_1754354780', '$2y$10$HIAyq48iXpjykdT3tVufG.NpEpFlu74xvlMoeHnzr.Fjmw1j10JEe', 'debug1754354780@test.com', 'Debug Test User', '2025-08-05 00:46:20', NULL),
-(25, 'test_1754354874', '$2y$10$H0yIuDMbl7WINvVLnvTkROwEyY7m22TjzXEjSUpYRKrZJJJ0384C6', 'test1754354874@example.com', 'Test User', '2025-08-05 00:47:54', NULL);
+(25, 'test_1754354874', '$2y$10$H0yIuDMbl7WINvVLnvTkROwEyY7m22TjzXEjSUpYRKrZJJJ0384C6', 'test1754354874@example.com', 'Test User', '2025-08-05 00:47:54', NULL),
+(26, 'apolllos', '$2y$10$PAftjBkdTPlWBoQCD4fVBOgQPnH9XkN4jpLZ4h7m9D7toi2T/kXW6', 'apollosmwaba@gmail.com', 'apollospatel', '2025-08-05 13:23:46', NULL),
+(27, 'admin', '$2y$10$MmSDi1gBV1yH37NfsxcuYOCT9XSiKu/Zy.KSZ5N0c5cNQ3kggE3vy', 'admin@email', 'admin', '2025-08-05 13:25:54', '2025-08-05 13:33:52');
 
 -- --------------------------------------------------------
 
@@ -86,10 +87,7 @@ CREATE TABLE `candidates` (
 --
 
 INSERT INTO `candidates` (`id`, `position_id`, `firstname`, `lastname`, `photo`, `platform`, `created_at`, `updated_at`, `election_id`, `name`, `bio`, `status`) VALUES
-(16, 40, 'Festus', 'Chemwemwe', 'uploads/candidates/candidate_689142fa650e4.png', 'ISIFSIRFISFR', '2025-08-04 23:32:10', '2025-08-04 23:32:10', 13, 'one face', 'IUSINDISIF', 0),
-(17, 40, 'Apollos Tel', 'Chemwemwe', 'uploads/candidates/candidate_689143af32b14.png', 'kjoon', '2025-08-04 23:35:11', '2025-08-04 23:35:39', 13, 'Apollos', 'ojojojojo', 0),
-(18, 41, 'am', 'ApollosBrooks', 'uploads/candidates/candidate_68914429be81b.png', 'isdjjsodcj', '2025-08-04 23:37:13', '2025-08-04 23:37:13', 14, 'am ApollosBrooks', 'sdijojsdoj', 0),
-(19, 41, 'amkjknknk', 'ApollosBrooksjkkj', NULL, 'ononon', '2025-08-04 23:37:49', '2025-08-04 23:37:49', 14, 'am ApollosBrooks', 'knknk', 0);
+(20, 40, 'Apollos', 'Mwaba', 'uploads/candidates/candidate_6891fd8c112c0.jpg', 'ASHBDIBIASDBO', '2025-08-05 12:48:12', '2025-08-05 13:08:46', 13, 'UNZA aPOLLOS', 'ASKJDAS', 1);
 
 -- --------------------------------------------------------
 
@@ -116,8 +114,8 @@ CREATE TABLE `elections` (
 --
 
 INSERT INTO `elections` (`id`, `name`, `description`, `start_date`, `end_date`, `status`, `created_by`, `created_at`, `updated_at`, `title`, `position`) VALUES
-(13, '', 'Vote for the president', '2025-08-05 01:00:00', '2025-08-28 00:00:00', 'active', 1, '2025-08-04 23:02:56', '2025-08-04 23:02:56', 'UNZANASA', 'General'),
-(14, '', 'Vote for vice president', '2025-08-05 01:00:00', '2025-08-21 00:00:00', 'active', 1, '2025-08-04 23:03:58', '2025-08-04 23:03:58', 'UNZANASA vice', 'General');
+(13, '', 'Vote for the president', '2025-08-05 01:00:00', '2025-08-28 00:00:00', 'active', NULL, '2025-08-04 23:02:56', '2025-08-04 23:02:56', 'UNZANASA', 'General'),
+(14, '', 'Vote for vice president', '2025-08-05 01:00:00', '2025-08-21 00:00:00', 'active', NULL, '2025-08-04 23:03:58', '2025-08-04 23:03:58', 'UNZANASA vice', 'General');
 
 -- --------------------------------------------------------
 
@@ -239,22 +237,6 @@ CREATE TABLE `votes` (
   `user_agent` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `votes`
---
-
-INSERT INTO `votes` (`id`, `voter_id`, `election_id`, `position_id`, `candidate_id`, `computer_number`, `voted_at`, `ip_address`, `user_agent`) VALUES
-(10, 2, 14, 41, 18, '2021511952', '2025-08-04 23:44:08', NULL, NULL),
-(24, 3, 14, 41, 18, '2021511953', '2025-08-04 23:53:57', '127.0.0.1', 'Test Browser'),
-(27, 11, 14, 41, 18, '2021511912', '2025-08-04 23:56:13', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0'),
-(28, 2, 13, 40, 17, '2021511952', '2025-08-05 00:24:35', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0'),
-(29, 12, 13, 40, 17, '2021511222', '2025-08-05 00:29:53', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'),
-(30, 12, 14, 41, 19, '2021511222', '2025-08-05 00:30:03', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'),
-(31, 13, 13, 40, 16, '2022511952', '2025-08-05 00:30:40', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'),
-(32, 13, 14, 41, 18, '2022511952', '2025-08-05 00:30:52', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'),
-(33, 14, 14, 41, 19, '2021511955', '2025-08-05 00:31:50', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0'),
-(34, 14, 13, 40, 17, '2021511955', '2025-08-05 00:32:02', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0');
-
 -- --------------------------------------------------------
 
 --
@@ -370,7 +352,7 @@ ALTER TABLE `voting_logs`
 -- AUTO_INCREMENT for table `admins`
 --
 ALTER TABLE `admins`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `admin_sessions`
@@ -382,7 +364,7 @@ ALTER TABLE `admin_sessions`
 -- AUTO_INCREMENT for table `candidates`
 --
 ALTER TABLE `candidates`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `elections`
