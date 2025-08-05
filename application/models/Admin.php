@@ -47,12 +47,8 @@ class Admin {
             Session::set('admin_id', $adminId);
             Session::set('admin_login_time', time());
             
-            // Store session in database
-            $sessionId = session_id();
-            $this->db->query('INSERT INTO admin_sessions (admin_id, session_id, created_at) VALUES (:admin_id, :session_id, NOW()) ON DUPLICATE KEY UPDATE created_at = NOW()');
-            $this->db->bind(':admin_id', $adminId);
-            $this->db->bind(':session_id', $sessionId);
-            $this->db->execute();
+            // Update last login timestamp
+            $this->updateLastLogin($adminId);
             
             return true;
         }
@@ -119,20 +115,14 @@ class Admin {
      * @param int $adminId
      */
     public function logout($adminId = null) {
-        // Remove session from database
-        if ($adminId) {
-            $this->db->query('DELETE FROM admin_sessions WHERE admin_id = :admin_id');
-            $this->db->bind(':admin_id', $adminId);
-            $this->db->execute();
-        }
-        
-        // Clear session variables
-        unset($_SESSION['admin_logged_in']);
-        unset($_SESSION['admin_id']);
-        unset($_SESSION['admin_login_time']);
+        // Clear session variables using Session helper
+        Session::delete('admin_logged_in');
+        Session::delete('admin_user');
+        Session::delete('admin_id');
+        Session::delete('admin_login_time');
         
         // Destroy session
-        session_destroy();
+        Session::destroy();
     }
     
     /**
@@ -140,18 +130,8 @@ class Admin {
      * @return bool
      */
     public function isValidSession() {
-        if (!isset($_SESSION['admin_logged_in']) || !isset($_SESSION['admin_id'])) {
-            return false;
-        }
-        
-        // Check if session exists in database
-        $sessionId = session_id();
-        $this->db->query('SELECT COUNT(*) as count FROM admin_sessions WHERE admin_id = :admin_id AND session_id = :session_id');
-        $this->db->bind(':admin_id', $_SESSION['admin_id']);
-        $this->db->bind(':session_id', $sessionId);
-        $result = $this->db->single();
-        
-        return $result['count'] > 0;
+        // Check if required session variables exist
+        return Session::get('admin_logged_in', false) && Session::get('admin_id', null) !== null;
     }
     
     /**
