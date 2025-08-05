@@ -383,5 +383,31 @@
             console.log('Dashboard loaded');
         });
     </script>
+    
+    <!-- Creative Designer Label -->
+    <div style="position: fixed; bottom: 15px; right: 15px; z-index: 1000;">
+        <div style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 11px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        " 
+        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)';" 
+        onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)';">
+            <span style="font-size: 12px;">⚡</span>
+            <span>Designed by <strong>Apollos Mwaba @cs</strong></span>
+        </div>
+    </div>
+    
 </body>
 </html>

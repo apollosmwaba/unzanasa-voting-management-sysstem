@@ -659,6 +659,21 @@ class Vote {
         }
     }
     
+    public function hasVoted($electionId, $computerNumber) {
+        try {
+            // Check if this computer number has already voted in this election
+            $this->db->query('SELECT COUNT(*) as count FROM votes v INNER JOIN voters vr ON v.voter_id = vr.id WHERE v.election_id = :election_id AND vr.voter_id = :computer_number');
+            $this->db->bind(':election_id', $electionId);
+            $this->db->bind(':computer_number', $computerNumber);
+            $result = $this->db->single();
+            
+            return $result['count'] > 0;
+        } catch (Exception $e) {
+            error_log('Error checking if voted: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
     private function getOrCreateVoter($computerNumber) {
         try {
             // First check if voter already exists

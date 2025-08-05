@@ -31,10 +31,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($computerNumber) || !Utils::validateComputerNumber($computerNumber)) {
             $error = 'Please enter a valid 10-digit computer number';
         } else {
-            // Store computer number in session and reset voted elections
+            // Check if this computer number has already voted for all elections
+            $votedElectionIds = [];
+            foreach ($activeElections as $election) {
+                if ($voteModel->hasVoted($election['id'], $computerNumber)) {
+                    $votedElectionIds[] = $election['id'];
+                }
+            }
+            
+            // Store computer number and voted elections in session
             $_SESSION['voter_computer_number'] = $computerNumber;
-            $_SESSION['voted_elections'] = [];
-            $showElections = true;
+            $_SESSION['voted_elections'] = $votedElectionIds;
+            
+            // Check if they've voted for all elections
+            if (count($votedElectionIds) >= count($activeElections)) {
+                // Already voted for all elections - show completion
+                $_SESSION['voting_completed'] = true;
+                $successMessage = 'Thank you! You have already completed voting for all available elections.';
+            } else {
+                $showElections = true;
+            }
         }
     } 
     elseif (isset($_POST['action']) && $_POST['action'] === 'vote') {
