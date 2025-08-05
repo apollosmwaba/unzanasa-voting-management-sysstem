@@ -82,27 +82,7 @@ class Admin {
         return $this->db->single();
     }
     
-    /**
-     * Create new admin
-     * @param array $data
-     * @return bool
-     */
-    public function create($data) {
-        try {
-            $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
-            
-            $this->db->query('INSERT INTO admins (username, password, email, full_name) VALUES (:username, :password, :email, :full_name)');
-            $this->db->bind(':username', $data['username']);
-            $this->db->bind(':password', $hashedPassword);
-            $this->db->bind(':email', $data['email']);
-            $this->db->bind(':full_name', $data['full_name']);
-            
-            return $this->db->execute();
-        } catch (Exception $e) {
-            error_log('Admin creation error: ' . $e->getMessage());
-            return false;
-        }
-    }
+
     
     /**
      * Update admin password
@@ -201,6 +181,49 @@ class Admin {
             return $this->db->execute();
         } catch (Exception $e) {
             error_log('Admin deletion error: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Create a new admin user
+     * @param array $data Admin data (username, email, password, full_name)
+     * @return bool
+     */
+    public function create($data) {
+        try {
+            // Validate required fields
+            if (empty($data['username']) || empty($data['email']) || empty($data['password'])) {
+                return false;
+            }
+            
+            // Check if username already exists
+            $this->db->query('SELECT id FROM admins WHERE username = :username LIMIT 1');
+            $this->db->bind(':username', $data['username']);
+            if ($this->db->single()) {
+                return false; // Username already exists
+            }
+            
+            // Check if email already exists
+            $this->db->query('SELECT id FROM admins WHERE email = :email LIMIT 1');
+            $this->db->bind(':email', $data['email']);
+            if ($this->db->single()) {
+                return false; // Email already exists
+            }
+            
+            // Hash the password
+            $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
+            
+            // Insert new admin
+            $this->db->query('INSERT INTO admins (username, email, password, full_name, created_at) VALUES (:username, :email, :password, :full_name, NOW())');
+            $this->db->bind(':username', $data['username']);
+            $this->db->bind(':email', $data['email']);
+            $this->db->bind(':password', $hashedPassword);
+            $this->db->bind(':full_name', $data['full_name'] ?? '');
+            
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log('Admin creation error: ' . $e->getMessage());
             return false;
         }
     }

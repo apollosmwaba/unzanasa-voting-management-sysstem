@@ -293,6 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <div class="form-footer">
                 <p>Forgot your password? <a href="forgot-password.php">Reset it here</a></p>
+                <p>Don't have an admin account? <a href="admin-register.php">Register here</a></p>
             </div>
         </div>
     </div>

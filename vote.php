@@ -5,6 +5,8 @@ require_once __DIR__ . '/init.php';
 // Check if reset is requested
 if (isset($_GET['reset'])) {
     unset($_SESSION['voter_computer_number']);
+    unset($_SESSION['voted_elections']);
+    unset($_SESSION['voting_completed']);
     header('Location: index.php');
     exit;
 }
@@ -16,6 +18,11 @@ $voteModel = new Vote();
 // Get active elections
 $activeElections = $electionModel->getActiveElections();
 
+// Initialize voted elections tracking
+if (!isset($_SESSION['voted_elections'])) {
+    $_SESSION['voted_elections'] = [];
+}
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && $_POST['action'] === 'verify_computer_number') {
@@ -24,8 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($computerNumber) || !Utils::validateComputerNumber($computerNumber)) {
             $error = 'Please enter a valid 10-digit computer number';
         } else {
-            // Store computer number in session
+            // Store computer number in session and reset voted elections
             $_SESSION['voter_computer_number'] = $computerNumber;
+            $_SESSION['voted_elections'] = [];
             $showElections = true;
         }
     } 
@@ -38,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($computerNumber) || !Utils::validateComputerNumber($computerNumber)) {
             $error = 'Invalid computer number. Please start over.';
             unset($_SESSION['voter_computer_number']);
+            unset($_SESSION['voted_elections']);
         } else {
             $success = $voteModel->castVote(
                 $electionId, 
@@ -48,8 +57,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             
             if ($success) {
-                $successMessage = 'Your vote has been cast successfully! Thank you for participating.';
-                unset($_SESSION['voter_computer_number']);
+                // Track this election as voted
+                $_SESSION['voted_elections'][] = $electionId;
+                
+                // Check if all elections have been voted for
+                $totalActiveElections = count($activeElections);
+                $votedElectionsCount = count($_SESSION['voted_elections']);
+                
+                if ($votedElectionsCount >= $totalActiveElections) {
+                    // All elections completed - redirect to thank you page
+                    $_SESSION['voting_completed'] = true;
+                    unset($_SESSION['voter_computer_number']);
+                    unset($_SESSION['voted_elections']);
+                    header('Location: vote-complete.php');
+                    exit;
+                } else {
+                    $successMessage = 'Vote cast successfully! Please continue voting for the remaining elections.';
+                }
             } else {
                 $error = 'Unable to cast vote. You may have already voted for this election.';
             }
@@ -229,72 +253,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <p>There are currently no active elections available for voting. Please check back later.</p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($activeElections as $election): 
+                    <!-- Voting Progress -->
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">📊 Voting Progress</h5>
+                        <p class="mb-0">
+                            Completed: <strong><?= count($_SESSION['voted_elections']) ?></strong> of <strong><?= count($activeElections) ?></strong> elections
+                            <?php if (count($_SESSION['voted_elections']) > 0): ?>
+                                <span class="ms-3">✅ Keep going! Vote for all elections to complete your participation.</span>
+                            <?php endif; ?>
+                        </p>
+                    </div>
+                    
+                    <?php 
+                    $remainingElections = [];
+                    $completedElections = [];
+                    
+                    foreach ($activeElections as $election): 
                         $candidates = $candidateModel->getCandidatesByElection($election['id']);
                         if (empty($candidates)) continue;
+                        
+                        if (in_array($election['id'], $_SESSION['voted_elections'])) {
+                            $completedElections[] = $election;
+                        } else {
+                            $remainingElections[] = $election;
+                        }
+                    endforeach;
                     ?>
-                        <div class="election-card mb-4">
-                            <h2 class="h4 mb-3"><?= htmlspecialchars($election['title']) ?></h2>
-                            <?php if (!empty($election['description'])): ?>
-                                <p class="text-muted mb-3"><?= htmlspecialchars($election['description']) ?></p>
-                            <?php endif; ?>
-                            
-                            <div class="election-meta mb-4">
-                                <span class="badge bg-info text-dark">
-                                    🗓️ <?= date('F j, Y', strtotime($election['start_date'])) ?> - <?= date('F j, Y', strtotime($election['end_date'])) ?>
-                                </span>
-                                <span class="badge bg-secondary ms-2">
-                                    Position: <?= htmlspecialchars($election['position'] ?? 'General') ?>
-                                </span>
-                            </div>
-                            
-                            <form method="POST" class="candidates-list">
-                                <input type="hidden" name="action" value="vote">
-                                <input type="hidden" name="election_id" value="<?= $election['id'] ?>">
-                                <input type="hidden" name="computer_number" value="<?= htmlspecialchars($_SESSION['voter_computer_number']) ?>">
-                                
-                                <h5 class="mb-3">Select your candidate:</h5>
-                                <div class="row">
-                                    <?php foreach ($candidates as $candidate): ?>
-                                        <div class="col-md-6 mb-3">
-                                            <div class="candidate-option">
-                                                <input type="radio" 
-                                                       id="candidate_<?= $candidate['id'] ?>_<?= $election['id'] ?>" 
-                                                       name="candidate_id" 
-                                                       value="<?= $candidate['id'] ?>"
-                                                       required>
-                                                <label for="candidate_<?= $candidate['id'] ?>_<?= $election['id'] ?>">
-                                                    <div class="candidate-card">
-                                                        <div class="candidate-photo">
-                                                            <?php if (!empty($candidate['photo'])): ?>
-                                                                <img src="<?= htmlspecialchars($candidate['photo']) ?>" 
-                                                                     alt="<?= htmlspecialchars($candidate['name']) ?>" 
-                                                                     onerror="this.onerror=null; this.parentElement.innerHTML='👤';">
-                                                            <?php else: ?>
-                                                                👤
-                                                            <?php endif; ?>
-                                                        </div>
-                                                        <div class="candidate-details">
-                                                            <h4><?= htmlspecialchars($candidate['name']) ?></h4>
-                                                            <?php if (!empty($candidate['bio'])): ?>
-                                                                <p class="candidate-bio"><?= nl2br(htmlspecialchars($candidate['bio'])) ?></p>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                            </div>
+                    
+                    <!-- Show Completed Elections -->
+                    <?php if (!empty($completedElections)): ?>
+                        <div class="mb-4">
+                            <h4 class="text-success">✅ Completed Elections</h4>
+                            <?php foreach ($completedElections as $election): ?>
+                                <div class="election-card mb-3 border-success bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="mb-1 text-success"><?= htmlspecialchars($election['title']) ?></h5>
+                                            <small class="text-muted">Vote cast successfully</small>
                                         </div>
-                                    <?php endforeach; ?>
+                                        <span class="badge bg-success fs-6">✓ Complete</span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <!-- Show Remaining Elections -->
+                    <?php if (!empty($remainingElections)): ?>
+                        <h4 class="text-primary mb-3">🗳️ Remaining Elections</h4>
+                        <?php foreach ($remainingElections as $election): 
+                            $candidates = $candidateModel->getCandidatesByElection($election['id']);
+                        ?>
+                            <div class="election-card mb-4">
+                                <h2 class="h4 mb-3"><?= htmlspecialchars($election['title']) ?></h2>
+                                <?php if (!empty($election['description'])): ?>
+                                    <p class="text-muted mb-3"><?= htmlspecialchars($election['description']) ?></p>
+                                <?php endif; ?>
+                                
+                                <div class="election-meta mb-4">
+                                    <span class="badge bg-info text-dark">
+                                        🗓️ <?= date('F j, Y', strtotime($election['start_date'])) ?> - <?= date('F j, Y', strtotime($election['end_date'])) ?>
+                                    </span>
+                                    <span class="badge bg-secondary ms-2">
+                                        Position: <?= htmlspecialchars($election['position'] ?? 'General') ?>
+                                    </span>
                                 </div>
                                 
-                                <div class="text-center mt-4">
-                                    <button type="submit" class="btn btn-primary btn-lg px-5">
-                                        Cast Your Vote
-                                    </button>
-                                </div>
-                            </form>
+                                <form method="POST" class="candidates-list">
+                                    <input type="hidden" name="action" value="vote">
+                                    <input type="hidden" name="election_id" value="<?= $election['id'] ?>">
+                                    <input type="hidden" name="computer_number" value="<?= htmlspecialchars($_SESSION['voter_computer_number']) ?>">
+                                    
+                                    <h5 class="mb-3">Select your candidate:</h5>
+                                    <div class="row">
+                                        <?php foreach ($candidates as $candidate): ?>
+                                            <div class="col-md-6 mb-3">
+                                                <div class="candidate-option">
+                                                    <input type="radio" 
+                                                           id="candidate_<?= $candidate['id'] ?>_<?= $election['id'] ?>" 
+                                                           name="candidate_id" 
+                                                           value="<?= $candidate['id'] ?>"
+                                                           required>
+                                                    <label for="candidate_<?= $candidate['id'] ?>_<?= $election['id'] ?>">
+                                                        <div class="candidate-card">
+                                                            <div class="candidate-photo">
+                                                                <?php if (!empty($candidate['photo'])): ?>
+                                                                    <img src="<?= htmlspecialchars($candidate['photo']) ?>" 
+                                                                         alt="<?= htmlspecialchars($candidate['name']) ?>" 
+                                                                         onerror="this.onerror=null; this.parentElement.innerHTML='👤';">
+                                                                <?php else: ?>
+                                                                    👤
+                                                                <?php endif; ?>
+                                                            </div>
+                                                            <div class="candidate-details">
+                                                                <h4><?= htmlspecialchars($candidate['name']) ?></h4>
+                                                                <?php if (!empty($candidate['bio'])): ?>
+                                                                    <p class="candidate-bio"><?= nl2br(htmlspecialchars($candidate['bio'])) ?></p>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    
+                                    <div class="text-center mt-4">
+                                        <button type="submit" class="btn btn-primary btn-lg px-5">
+                                            Cast Your Vote
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="alert alert-success">
+                            <h4 class="alert-heading">🎉 All Elections Completed!</h4>
+                            <p>You have successfully voted in all available elections. Thank you for your participation!</p>
                         </div>
-                    <?php endforeach; ?>
+                    <?php endif; ?>
                 <?php endif; ?>
             <?php endif; ?>
         <?php endif; ?>

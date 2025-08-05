@@ -681,13 +681,16 @@ class Vote {
             }
 
             // Record the vote
-            $this->db->query('INSERT INTO votes (voter_id, election_id, position_id, candidate_id, voted_at) 
-                             VALUES (:voter_id, :election_id, :position_id, :candidate_id, NOW())');
+            $this->db->query('INSERT INTO votes (voter_id, election_id, position_id, candidate_id, computer_number, ip_address, user_agent, voted_at) 
+                             VALUES (:voter_id, :election_id, :position_id, :candidate_id, :computer_number, :ip_address, :user_agent, NOW())');
             
             $this->db->bind(':voter_id', $voterId);
             $this->db->bind(':election_id', $electionId);
             $this->db->bind(':position_id', $candidate['position_id']);
             $this->db->bind(':candidate_id', $candidateId);
+            $this->db->bind(':computer_number', $computerNumber);
+            $this->db->bind(':ip_address', $ipAddress);
+            $this->db->bind(':user_agent', $userAgent);
             
             return $this->db->execute();
         } catch (Exception $e) {

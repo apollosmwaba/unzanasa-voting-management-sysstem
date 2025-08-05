@@ -252,6 +252,32 @@ try {
 </head>
 <body>
     <div class="container py-5">
+        <!-- Navigation Header -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <nav class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                    <div class="d-flex align-items-center">
+                        <a href="admin-dashboard.php" class="btn btn-primary me-2">
+                            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                        </a>
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-left me-1"></i> Back
+                        </a>
+                        <span class="text-muted">|</span>
+                        <a href="manage-elections.php" class="btn btn-outline-primary ms-2 me-2">
+                            <i class="fas fa-vote-yea me-1"></i> Manage Elections
+                        </a>
+                        <a href="view-results.php" class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar me-1"></i> View Results
+                        </a>
+                    </div>
+                    <div class="text-muted">
+                        <i class="fas fa-user-tie me-1"></i> Admin Panel
+                    </div>
+                </nav>
+            </div>
+        </div>
+        
         <div class="row mb-4">
             <div class="col-12">
                 <h2 class="mb-4"><?php echo isset($editCandidate) ? 'Edit' : 'Add New'; ?> Candidate</h2>
