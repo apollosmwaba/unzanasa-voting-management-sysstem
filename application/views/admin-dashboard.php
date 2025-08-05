@@ -299,9 +299,9 @@
                 <span class="icon">👤</span>
                 <span>Manage Candidates</span>
             </a>
-            <a href="upload-voters.php" class="action-btn">
-                <span class="icon">📤</span>
-                <span>Upload Voters</span>
+            <a href="manage-admins.php" class="action-btn">
+                <span class="icon">👥</span>
+                <span>Manage Admins</span>
             </a>
             <a href="view-results.php" class="action-btn">
                 <span class="icon">📈</span>

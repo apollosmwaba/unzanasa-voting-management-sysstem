@@ -38,16 +38,25 @@ class Admin {
      * @param int $adminId
      */
     public function createSession($adminId) {
-        $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_id'] = $adminId;
-        $_SESSION['admin_login_time'] = time();
-        
-        // Store session in database
-        $sessionId = session_id();
-        $this->db->query('INSERT INTO admin_sessions (admin_id, session_id, created_at) VALUES (:admin_id, :session_id, NOW()) ON DUPLICATE KEY UPDATE created_at = NOW()');
-        $this->db->bind(':admin_id', $adminId);
-        $this->db->bind(':session_id', $sessionId);
-        $this->db->execute();
+        // Get admin data for session
+        $admin = $this->getById($adminId);
+        if ($admin) {
+            // Set session data compatible with Auth class
+            Session::set('admin_logged_in', true);
+            Session::set('admin_user', $admin);
+            Session::set('admin_id', $adminId);
+            Session::set('admin_login_time', time());
+            
+            // Store session in database
+            $sessionId = session_id();
+            $this->db->query('INSERT INTO admin_sessions (admin_id, session_id, created_at) VALUES (:admin_id, :session_id, NOW()) ON DUPLICATE KEY UPDATE created_at = NOW()');
+            $this->db->bind(':admin_id', $adminId);
+            $this->db->bind(':session_id', $sessionId);
+            $this->db->execute();
+            
+            return true;
+        }
+        return false;
     }
     
     /**

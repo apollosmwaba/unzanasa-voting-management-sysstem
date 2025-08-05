@@ -12,7 +12,41 @@ $messageType = 'success';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    if ($action === 'delete') {
+    if ($action === 'create') {
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        $fullName = trim($_POST['full_name'] ?? '');
+        
+        // Validation
+        if (empty($username) || empty($email) || empty($password)) {
+            $message = 'Username, email, and password are required.';
+            $messageType = 'danger';
+        } elseif ($password !== $confirmPassword) {
+            $message = 'Passwords do not match.';
+            $messageType = 'danger';
+        } elseif (strlen($password) < 6) {
+            $message = 'Password must be at least 6 characters long.';
+            $messageType = 'danger';
+        } else {
+            $admin = new Admin();
+            $adminData = [
+                'username' => $username,
+                'email' => $email,
+                'password' => $password,
+                'full_name' => $fullName
+            ];
+            
+            if ($admin->create($adminData)) {
+                $message = 'Admin account created successfully.';
+                $messageType = 'success';
+            } else {
+                $message = 'Failed to create admin account. Username or email may already exist.';
+                $messageType = 'danger';
+            }
+        }
+    } elseif ($action === 'delete') {
         $adminId = (int)($_POST['admin_id'] ?? 0);
         $currentAdminId = $_SESSION['admin_id'] ?? 0;
         
@@ -149,6 +183,65 @@ $admins = $admin->getAll();
                         ?></h6>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Add New Admin -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-plus me-2"></i>Add New Administrator
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="row g-3">
+                    <input type="hidden" name="action" value="create">
+                    
+                    <div class="col-md-6">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user me-1"></i>Username <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope me-1"></i>Email <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label for="full_name" class="form-label">
+                            <i class="fas fa-id-card me-1"></i>Full Name
+                        </label>
+                        <input type="text" class="form-control" id="full_name" name="full_name">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock me-1"></i>Password <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                        <div class="form-text">Minimum 6 characters</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="confirm_password" class="form-label">
+                            <i class="fas fa-lock me-1"></i>Confirm Password <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6">
+                    </div>
+                    
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i>Create Admin Account
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-undo me-1"></i>Reset Form
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
         

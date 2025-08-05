@@ -128,7 +128,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'election_id' => $electionId,
             'platform' => $platform,
             'bio' => $bio,
-            'photo' => $photoPath
+            'photo' => $photoPath,
+            'status' => $status
         ];
         
         try {
@@ -381,7 +382,7 @@ try {
                                 <!-- Status -->
                                 <div class="mb-3 form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="status" name="status" 
-                                           <?php echo (isset($editCandidate['status']) && $editCandidate['status']) ? 'checked' : ''; ?>>
+                                           <?php echo (!isset($editCandidate) || (isset($editCandidate['status']) && $editCandidate['status'])) ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="status">
                                         <i class="fas fa-toggle-on me-1"></i> Active Candidate
                                     </label>

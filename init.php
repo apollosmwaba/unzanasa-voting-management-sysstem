@@ -119,47 +119,7 @@ class Utils {
     }
 }
 
-// Admin class for authentication and management
-class Admin {
-    private $db;
-    
-    public function __construct() {
-        $this->db = new Database();
-    }
-    
-    public function authenticate($username, $password) {
-        $this->db->query('SELECT * FROM admins WHERE username = :username');
-        $this->db->bind(':username', $username);
-        $admin = $this->db->single();
-        
-        if ($admin && password_verify($password, $admin['password'])) {
-            unset($admin['password']); // Remove password before storing in session
-            return $admin;
-        }
-        
-        return false;
-    }
-    
-    public function createSession($adminId) {
-        $this->db->query('SELECT id, username, email, full_name FROM admins WHERE id = :id');
-        $this->db->bind(':id', $adminId);
-        $admin = $this->db->single();
-        
-        if ($admin) {
-            Session::set('admin_logged_in', true);
-            Session::set('admin_user', (array)$admin);
-            return true;
-        }
-        
-        return false;
-    }
-    
-    public static function logout() {
-        Session::delete('admin_logged_in');
-        Session::delete('admin_user');
-        Session::destroy();
-    }
-}
+// Admin class is now loaded via autoloader from /application/models/Admin.php
 
 // Database connection class
 class Database {

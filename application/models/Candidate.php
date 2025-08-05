@@ -101,8 +101,8 @@ class Candidate {
     public function createCandidate($data) {
         try {
             $this->db->query("
-                INSERT INTO candidates (firstname, lastname, name, position_id, election_id, photo, platform, bio) 
-                VALUES (:firstname, :lastname, :name, :position_id, :election_id, :photo, :platform, :bio)
+                INSERT INTO candidates (firstname, lastname, name, position_id, election_id, photo, platform, bio, status) 
+                VALUES (:firstname, :lastname, :name, :position_id, :election_id, :photo, :platform, :bio, :status)
             ");
             
             $this->db->bind(':firstname', $data['firstname']);
@@ -113,6 +113,7 @@ class Candidate {
             $this->db->bind(':photo', $data['photo'] ?? null);
             $this->db->bind(':platform', $data['platform']);
             $this->db->bind(':bio', $data['bio'] ?? null);
+            $this->db->bind(':status', $data['status'] ?? 1);
             
             if ($this->db->execute()) {
                 return $this->db->lastInsertId();
@@ -146,7 +147,7 @@ class Candidate {
                 SET firstname = :firstname, lastname = :lastname, name = :name, 
                     position_id = :position_id, election_id = :election_id, 
                     photo = :photo, platform = :platform, bio = :bio, 
-                    updated_at = NOW()
+                    status = :status, updated_at = NOW()
                 WHERE id = :id
             ");
             
@@ -159,6 +160,7 @@ class Candidate {
             $this->db->bind(':photo', $data['photo']);
             $this->db->bind(':platform', $data['platform']);
             $this->db->bind(':bio', $data['bio']);
+            $this->db->bind(':status', $data['status'] ?? 1);
             
             return $this->db->execute();
         } catch (Exception $e) {
