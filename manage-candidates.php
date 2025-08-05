@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'image/gif' => 'gif',
             'image/webp' => 'webp'
         ];
-        $maxFileSize = 2 * 1024 * 1024; // 2MB
+        $maxFileSize = 10 * 1024 * 1024; // 10MB
         
         // Validate file type
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!array_key_exists($fileType, $allowedTypes)) {
             $errors[] = 'Invalid file type. Only JPG, PNG, and GIF are allowed.';
         } elseif ($photo['size'] > $maxFileSize) {
-            $errors[] = 'File is too large. Maximum size is 2MB.';
+            $errors[] = 'File is too large. Maximum size is 10MB.';
         } else {
             // Create uploads directory if it doesn't exist
             $uploadDir = __DIR__ . '/uploads/candidates/';
@@ -375,7 +375,7 @@ try {
                                     <input type="file" class="form-control form-control-lg" id="photo" name="photo" 
                                            accept="image/jpeg,image/png,image/gif,image/webp">
                                     <div class="form-text">
-                                        <i class="fas fa-info-circle me-1"></i> Maximum file size: 2MB. Allowed formats: JPG, PNG, GIF, WebP
+                                        <i class="fas fa-info-circle me-1"></i> Maximum file size: 10MB. Allowed formats: JPG, PNG, GIF, WebP
                                     </div>
                                 </div>
                                 

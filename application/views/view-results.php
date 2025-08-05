@@ -182,8 +182,24 @@
         <?php if ($showAllElections): ?>
             <!-- All Elections Results -->
             <div class="results-summary">
-                <h3><i class="fas fa-chart-bar"></i> All Election Results Overview</h3>
-                <p class="text-muted">Comprehensive results for all elections in the system</p>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h3><i class="fas fa-chart-bar"></i> All Election Results Overview</h3>
+                        <p class="text-muted mb-0">Comprehensive results for all elections in the system</p>
+                    </div>
+                    <div class="export-buttons">
+                        <div class="btn-group" role="group">
+                            <a href="export-results.php?show_all=1&format=pdf" 
+                               class="btn btn-outline-danger">
+                                <i class="fas fa-file-pdf me-1"></i>Print All PDF
+                            </a>
+                            <a href="export-results.php?show_all=1&format=word" 
+                               class="btn btn-outline-primary">
+                                <i class="fas fa-file-word me-1"></i>Export All Word
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <?php if (empty($allElectionResults)): ?>
@@ -403,9 +419,20 @@
                                 </div>
                                 
                                 <div class="mt-3">
-                                    <a href="export-results.php?election_id=<?php echo $selectedElection->id; ?>" class="btn btn-outline-primary w-100">
-                                        <i class="fas fa-download me-2"></i>Export Results
-                                    </a>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <a href="export-results.php?election_id=<?php echo $selectedElection['id']; ?>&format=pdf" 
+                                               class="btn btn-outline-danger w-100">
+                                                <i class="fas fa-file-pdf me-2"></i>Print as PDF
+                                            </a>
+                                        </div>
+                                        <div class="col-6">
+                                            <a href="export-results.php?election_id=<?php echo $selectedElection['id']; ?>&format=word" 
+                                               class="btn btn-outline-primary w-100">
+                                                <i class="fas fa-file-word me-2"></i>Export Word
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-info mb-0">No results available for this election yet.</div>
